@@ -1,0 +1,33 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of go build
+/build/
+bin/
+dist/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Go modules
+vendor/
+
+# Test logs / coverage
+*.log
+*.coverprofile
+coverage.out
