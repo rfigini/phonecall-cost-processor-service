@@ -6,6 +6,9 @@ import (
 
 	"phonecall-cost-processor-service/internal/config"
 	"phonecall-cost-processor-service/internal/infrastructure"
+	"phonecall-cost-processor-service/internal/consumer"
+	"phonecall-cost-processor-service/internal/repository"
+
 )
 
 func main() {
@@ -31,4 +34,15 @@ func main() {
 	defer rabbitConn.Close()
 	defer rabbitCh.Close()
 	fmt.Println("✅ Conexión a RabbitMQ exitosa")
+	callRepository := repository.NewCallRepository(db)
+
+	err = consumer.StartConsumingMessages(rabbitCh, cfg.RabbitQueue, callRepository) 
+
+	if err != nil {
+		log.Fatalf("❌ Error iniciando consumidor: %v", err)
+	}
+
+	// Mantener el programa vivo
+
+	select {}
 }
