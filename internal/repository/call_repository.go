@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"phonecall-cost-processor-service/internal/model"
 )
@@ -18,9 +19,9 @@ func NewCallRepository(db *sql.DB) *CallRepository {
 func (r *CallRepository) SaveIncomingCall(call model.NewIncomingCall) error {
 	query := `
 		INSERT INTO calls (
-			call_id, caller, receiver, duration_in_seconds, start_timestamp
+			call_id, caller, receiver, duration_in_seconds, start_timestamp, cost, currency, cost_fetch_failed
 		)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (call_id) DO NOTHING;
 	`
 
@@ -30,9 +31,16 @@ func (r *CallRepository) SaveIncomingCall(call model.NewIncomingCall) error {
 		call.Receiver,
 		call.DurationInSec,
 		call.StartTimestamp,
+		call.Cost,
+		call.Currency,
+		call.CostFetchFailed,
 	)
 
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			fmt.Printf("⚠️ Llamada duplicada ignorada: %s\n", call.CallID)
+			return nil
+		}
 		return fmt.Errorf("error insertando llamada: %w", err)
 	}
 
@@ -71,4 +79,3 @@ func (r *CallRepository) UpdateCallCost(callID string, cost float64, currency st
 
 	return nil
 }
-
