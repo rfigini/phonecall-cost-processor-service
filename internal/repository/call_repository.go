@@ -56,3 +56,19 @@ func (r *CallRepository) ApplyRefund(refund model.RefundCall) error {
 	return nil
 }
 
+func (r *CallRepository) UpdateCallCost(callID string, cost float64, currency string) error {
+	query := `
+		UPDATE calls
+		SET cost = $1,
+		    currency = $2
+		WHERE call_id = $3;
+	`
+
+	_, err := r.db.Exec(query, cost, currency, callID)
+	if err != nil {
+		return fmt.Errorf("error actualizando costo: %w", err)
+	}
+
+	return nil
+}
+

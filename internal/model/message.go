@@ -6,11 +6,14 @@ type Message struct {
 }
 
 type NewIncomingCall struct {
-	CallID           string `json:"call_id"`
-	Caller           string `json:"caller"`
-	Receiver         string `json:"receiver"`
-	DurationInSec    int    `json:"duration_in_seconds"`
-	StartTimestamp   string `json:"start_timestamp"`
+	CallID           string   `json:"call_id"`
+	Caller           string   `json:"caller"`
+	Receiver         string   `json:"receiver"`
+	DurationInSec    int      `json:"duration_in_seconds"`
+	StartTimestamp   string   `json:"start_timestamp"`
+	Cost             *float64 `json:"cost,omitempty"`
+	Currency         string   `json:"currency,omitempty"`
+	CostFetchFailed  bool     `json:"cost_fetch_failed"`
 }
 
 type RefundCall struct {

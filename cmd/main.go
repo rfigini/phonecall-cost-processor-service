@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"log"
 
+	"phonecall-cost-processor-service/internal/client"
 	"phonecall-cost-processor-service/internal/config"
-	"phonecall-cost-processor-service/internal/infrastructure"
 	"phonecall-cost-processor-service/internal/consumer"
+	"phonecall-cost-processor-service/internal/infrastructure"
+	"phonecall-cost-processor-service/internal/mock"
 	"phonecall-cost-processor-service/internal/repository"
-
 )
 
 func main() {
@@ -17,6 +18,7 @@ func main() {
 	fmt.Println("📦 Configuración cargada:")
 	fmt.Println("RabbitMQ URL:", cfg.RabbitURL)
 	fmt.Println("DB URL:", cfg.DBUrl)
+	mock.StartMockCostAPI()
 
 	// Conexión a PostgreSQL
 	db, err := infrastructure.NewPostgresConnection(cfg.DBUrl)
@@ -35,14 +37,13 @@ func main() {
 	defer rabbitCh.Close()
 	fmt.Println("✅ Conexión a RabbitMQ exitosa")
 	callRepository := repository.NewCallRepository(db)
+	costClient := client.NewCostClient(cfg.CostAPIUrl)
 
-	err = consumer.StartConsumingMessages(rabbitCh, cfg.RabbitQueue, callRepository) 
+	err = consumer.StartConsumingMessages(rabbitCh, cfg.RabbitQueue, callRepository, costClient)
 
 	if err != nil {
 		log.Fatalf("❌ Error iniciando consumidor: %v", err)
 	}
-
-	// Mantener el programa vivo
 
 	select {}
 }
