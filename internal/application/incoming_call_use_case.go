@@ -2,14 +2,19 @@ package application
 
 import (
 	"phonecall-cost-processor-service/internal/domain/model"
-	"phonecall-cost-processor-service/internal/domain/model/service"
+	"phonecall-cost-processor-service/internal/domain/model/services"
 )
 
-type IncomingCallUseCase struct {
-	callService *service.CallService
+
+type IIncomingCallUseCase interface {
+	Execute(call model.NewIncomingCall) error
 }
 
-func NewIncomingCallUseCase(callService *service.CallService) *IncomingCallUseCase {
+type IncomingCallUseCase struct {
+	callService service.ICallService
+}
+
+func NewIncomingCallUseCase(callService service.ICallService) *IncomingCallUseCase {
 	return &IncomingCallUseCase{callService}
 }
 

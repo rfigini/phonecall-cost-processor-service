@@ -4,7 +4,7 @@ import (
 	"log"
 	"phonecall-cost-processor-service/internal/application"
 
-	"phonecall-cost-processor-service/internal/domain/model/service"
+	"phonecall-cost-processor-service/internal/domain/model/services"
 	"phonecall-cost-processor-service/internal/handler"
 	"phonecall-cost-processor-service/internal/infrastructure"
 	"phonecall-cost-processor-service/internal/infrastructure/client"

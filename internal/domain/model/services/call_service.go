@@ -7,12 +7,16 @@ import (
 	"phonecall-cost-processor-service/internal/domain/port/repository"
 )
 
+type ICallService interface {
+	Process(call model.NewIncomingCall) error
+}
+
 type CallService struct {
 	repo       repository.CallRepository
 	costClient client.CostClient
 }
 
-func NewCallService(repo repository.CallRepository, costClient client.CostClient) *CallService {
+func NewCallService(repo repository.CallRepository, costClient client.CostClient) ICallService {
 	return &CallService{repo, costClient}
 }
 

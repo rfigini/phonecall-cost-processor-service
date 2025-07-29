@@ -8,10 +8,10 @@ import (
 )
 
 type RefundCallHandler struct {
-	useCase *application.RefundCallUseCase
+	useCase application.IRefundCallUseCase
 }
 
-func NewRefundCallHandler(useCase *application.RefundCallUseCase) *RefundCallHandler {
+func NewRefundCallHandler(useCase application.IRefundCallUseCase) *RefundCallHandler {
 	return &RefundCallHandler{useCase: useCase}
 }
 
@@ -22,7 +22,7 @@ func (h *RefundCallHandler) Handle(msg []byte) error {
 		return err
 	}
 
-	err := h.useCase.ApplyRefund(refund)
+	err := h.useCase.Execute(refund)
 	if err != nil {
 		log.Printf("❌ Error aplicando refund: %v\n", err)
 		return err

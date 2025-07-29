@@ -7,11 +7,12 @@ import (
 	"phonecall-cost-processor-service/internal/domain/model"
 )
 
+
 type IncomingCallHandler struct {
-	useCase *application.IncomingCallUseCase
+	useCase application.IIncomingCallUseCase
 }
 
-func NewIncomingCallHandler(useCase *application.IncomingCallUseCase) *IncomingCallHandler {
+func NewIncomingCallHandler(useCase application.IIncomingCallUseCase) *IncomingCallHandler {
 	return &IncomingCallHandler{useCase: useCase}
 }
 
