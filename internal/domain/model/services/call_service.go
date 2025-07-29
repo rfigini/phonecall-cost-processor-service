@@ -12,8 +12,8 @@ type ICallService interface {
 }
 
 type CallService struct {
-	repo       repository.CallRepository
-	costClient client.CostClient
+	callRepository repository.CallRepository
+	costClient     client.CostClient
 }
 
 func NewCallService(repo repository.CallRepository, costClient client.CostClient) ICallService {
@@ -21,7 +21,7 @@ func NewCallService(repo repository.CallRepository, costClient client.CostClient
 }
 
 func (s *CallService) Process(call model.NewIncomingCall) error {
-	if err := s.repo.SaveIncomingCall(call); err != nil {
+	if err := s.callRepository.SaveIncomingCall(call); err != nil {
 		return err
 	}
 
@@ -30,8 +30,8 @@ func (s *CallService) Process(call model.NewIncomingCall) error {
 		log.Printf("⚠️ Error obteniendo costo: %v", err)
 		call.CostFetchFailed = true
 		// guardamos que falló la obtención del costo
-		return s.repo.UpdateCallCost(call.CallID, 0, "")
+		return s.callRepository.UpdateCallCost(call.CallID, 0, "")
 	}
 
-	return s.repo.UpdateCallCost(call.CallID, costResp.Cost, costResp.Currency)
+	return s.callRepository.UpdateCallCost(call.CallID, costResp.Cost, costResp.Currency)
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"phonecall-cost-processor-service/internal/domain/model"
-	"phonecall-cost-processor-service/internal/handler"
+	"phonecall-cost-processor-service/internal/infrastructure/handler"
 )
 
 // Mock del RefundCallUseCase

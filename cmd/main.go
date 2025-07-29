@@ -5,11 +5,12 @@ import (
 	"phonecall-cost-processor-service/internal/application"
 
 	"phonecall-cost-processor-service/internal/domain/model/services"
-	"phonecall-cost-processor-service/internal/handler"
+
 	"phonecall-cost-processor-service/internal/infrastructure"
 	"phonecall-cost-processor-service/internal/infrastructure/client"
 	"phonecall-cost-processor-service/internal/infrastructure/config"
 	"phonecall-cost-processor-service/internal/infrastructure/consumer"
+	"phonecall-cost-processor-service/internal/infrastructure/handler"
 	"phonecall-cost-processor-service/internal/infrastructure/repository"
 	"phonecall-cost-processor-service/mock"
 )
