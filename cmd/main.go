@@ -10,7 +10,6 @@ import (
 	"phonecall-cost-processor-service/internal/infrastructure/client"
 	"phonecall-cost-processor-service/internal/infrastructure/config"
 	"phonecall-cost-processor-service/internal/infrastructure/handler"
-	"phonecall-cost-processor-service/internal/infrastructure/repository"
 	"phonecall-cost-processor-service/internal/infrastructure/rabbitmq"
 	"phonecall-cost-processor-service/mock"
 )
@@ -36,7 +35,7 @@ func main() {
 	defer rabbitCh.Close()
 
 	// Dependencias
-	callRepo := repository.NewPostgresCallRepository(db)
+	callRepo := postgres.NewPostgresCallRepository(db)
 	costClient := client.NewHTTPCostClient(cfg.CostAPIUrl)
 	callService := service.NewCallService(callRepo, costClient)
 
