@@ -1,4 +1,4 @@
-package consumer
+package rabbitmq
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"github.com/streadway/amqp"
 )
 
-// Handler representa una interfaz polimórfica para procesar distintos tipos de mensajes.
 type Handler interface {
 	Handle([]byte) error
 }

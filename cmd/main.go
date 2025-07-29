@@ -6,12 +6,12 @@ import (
 
 	"phonecall-cost-processor-service/internal/domain/model/services"
 
-	"phonecall-cost-processor-service/internal/infrastructure"
+	"phonecall-cost-processor-service/internal/infrastructure/postgres"
 	"phonecall-cost-processor-service/internal/infrastructure/client"
 	"phonecall-cost-processor-service/internal/infrastructure/config"
-	"phonecall-cost-processor-service/internal/infrastructure/consumer"
 	"phonecall-cost-processor-service/internal/infrastructure/handler"
 	"phonecall-cost-processor-service/internal/infrastructure/repository"
+	"phonecall-cost-processor-service/internal/infrastructure/rabbitmq"
 	"phonecall-cost-processor-service/mock"
 )
 
@@ -21,14 +21,14 @@ func main() {
 	mock.StartMockCostAPI()
 
 	// PostgreSQL
-	db, err := infrastructure.NewPostgresConnection(cfg.DBUrl)
+	db, err := postgres.NewPostgresConnection(cfg.DBUrl)
 	if err != nil {
 		log.Fatalf("❌ Error conectando a PostgreSQL: %v", err)
 	}
 	defer db.Close()
 
 	// RabbitMQ
-	rabbitConn, rabbitCh, err := infrastructure.NewRabbitConn(cfg.RabbitURL)
+	rabbitConn, rabbitCh, err := rabbitmq.NewRabbitConn(cfg.RabbitURL)
 	if err != nil {
 		log.Fatalf("❌ Error conectando a RabbitMQ: %v", err)
 	}
@@ -50,13 +50,13 @@ func main() {
 	refundHandler := handler.NewRefundCallHandler(refundUseCase)
 
 
-	handlerMap := map[string]consumer.Handler{
+	handlerMap := map[string]rabbitmq.Handler{
 		"new_incoming_call": incomingHandler,
 		"refund_call":       refundHandler,
 	}
 
 	// Consumidor
-	if err := consumer.StartConsumingMessages(rabbitCh, cfg.RabbitQueue, handlerMap); err != nil {
+	if err := rabbitmq.StartConsumingMessages(rabbitCh, cfg.RabbitQueue, handlerMap); err != nil {
 		log.Fatalf("❌ Error iniciando consumidor: %v", err)
 	}
 
