@@ -3,14 +3,13 @@ package consumer
 import (
 	"encoding/json"
 	"log"
-	"phonecall-cost-processor-service/internal/client"
-	"phonecall-cost-processor-service/internal/consumer/handlers"
-	"phonecall-cost-processor-service/internal/repository"
 
 	"github.com/streadway/amqp"
 )
 
-func StartConsumingMessages(ch *amqp.Channel, queueName string, callRepo *repository.CallRepository, costClient *client.CostClient) error {
+type HandlerFunc func(msg []byte) error
+
+func StartConsumingMessages(ch *amqp.Channel, queueName string, handlers map[string]HandlerFunc) error {
 	_, err := ch.QueueDeclare(queueName, true, false, false, false, nil)
 	if err != nil {
 		return err
@@ -19,12 +18,6 @@ func StartConsumingMessages(ch *amqp.Channel, queueName string, callRepo *reposi
 	msgs, err := ch.Consume(queueName, "", true, false, false, false, nil)
 	if err != nil {
 		return err
-	}
-
-	// 🎯 Mapa extensible de handlers
-	handlerMap := map[string]HandlerFunc{
-		"new_incoming_call": handlers.NewIncomingCallHandler(callRepo, costClient),
-		"refund_call":       handlers.NewRefundCallHandler(callRepo),
 	}
 
 	go func() {
@@ -41,7 +34,7 @@ func StartConsumingMessages(ch *amqp.Channel, queueName string, callRepo *reposi
 				continue
 			}
 
-			handler, ok := handlerMap[msgType]
+			handler, ok := handlers[msgType]
 			if !ok {
 				log.Printf("⚠️ Tipo de mensaje desconocido: %s\n", msgType)
 				continue
@@ -53,5 +46,6 @@ func StartConsumingMessages(ch *amqp.Channel, queueName string, callRepo *reposi
 		}
 	}()
 
+	log.Println("📡 Esperando mensajes...")
 	return nil
 }
