@@ -7,9 +7,12 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type HandlerFunc func(msg []byte) error
+// Handler representa una interfaz polimórfica para procesar distintos tipos de mensajes.
+type Handler interface {
+	Handle([]byte) error
+}
 
-func StartConsumingMessages(ch *amqp.Channel, queueName string, handlers map[string]HandlerFunc) error {
+func StartConsumingMessages(ch *amqp.Channel, queueName string, handlers map[string]Handler) error {
 	_, err := ch.QueueDeclare(queueName, true, false, false, false, nil)
 	if err != nil {
 		return err
@@ -40,12 +43,11 @@ func StartConsumingMessages(ch *amqp.Channel, queueName string, handlers map[str
 				continue
 			}
 
-			if err := handler(raw["body"]); err != nil {
+			if err := handler.Handle(raw["body"]); err != nil {
 				log.Printf("❌ Error procesando mensaje tipo %s: %v\n", msgType, err)
 			}
 		}
 	}()
 
-	log.Println("📡 Esperando mensajes...")
 	return nil
 }

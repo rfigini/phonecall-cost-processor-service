@@ -2,7 +2,7 @@ package application
 
 import (
 	"phonecall-cost-processor-service/internal/domain/model"
-	"phonecall-cost-processor-service/internal/domain/service"
+	"phonecall-cost-processor-service/internal/domain/model/service"
 )
 
 type IncomingCallUseCase struct {

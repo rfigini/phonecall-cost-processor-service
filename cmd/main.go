@@ -4,16 +4,19 @@ import (
 	"log"
 	"phonecall-cost-processor-service/internal/application"
 	"phonecall-cost-processor-service/internal/config"
-	"phonecall-cost-processor-service/internal/consumer"
-	"phonecall-cost-processor-service/internal/domain/service"
+	"phonecall-cost-processor-service/internal/domain/model/service"
 	"phonecall-cost-processor-service/internal/handler"
 	"phonecall-cost-processor-service/internal/infrastructure"
 	"phonecall-cost-processor-service/internal/infrastructure/client"
+	"phonecall-cost-processor-service/internal/infrastructure/consumer"
 	"phonecall-cost-processor-service/internal/infrastructure/repository"
+	"phonecall-cost-processor-service/mock"
 )
 
 func main() {
 	cfg := config.Load()
+	// 🚀 Iniciar API de costos mock si estás en local
+	mock.StartMockCostAPI()
 
 	// PostgreSQL
 	db, err := infrastructure.NewPostgresConnection(cfg.DBUrl)
@@ -44,10 +47,10 @@ func main() {
 	incomingHandler := handler.NewIncomingCallHandler(incomingUseCase)
 	refundHandler := handler.NewRefundCallHandler(refundUseCase)
 
-	// Map de handlers
-	handlerMap := map[string]consumer.HandlerFunc{
-		"new_incoming_call": incomingHandler.Handle,
-		"refund_call":       refundHandler.Handle,
+
+	handlerMap := map[string]consumer.Handler{
+		"new_incoming_call": incomingHandler,
+		"refund_call":       refundHandler,
 	}
 
 	// Consumidor

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"phonecall-cost-processor-service/internal/domain/client"
 	"phonecall-cost-processor-service/internal/domain/model"
+	"phonecall-cost-processor-service/internal/domain/port/client"
 )
 
 type HTTPCostClient struct {

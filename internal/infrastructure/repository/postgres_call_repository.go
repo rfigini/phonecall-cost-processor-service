@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"phonecall-cost-processor-service/internal/domain/model"
-	"phonecall-cost-processor-service/internal/domain/repository"
+	"phonecall-cost-processor-service/internal/domain/port/repository"
 )
 
 type PostgresCallRepository struct {

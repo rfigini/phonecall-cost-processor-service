@@ -2,9 +2,9 @@ package service
 
 import (
 	"log"
-	"phonecall-cost-processor-service/internal/domain/client"
 	"phonecall-cost-processor-service/internal/domain/model"
-	"phonecall-cost-processor-service/internal/domain/repository"
+	"phonecall-cost-processor-service/internal/domain/port/client"
+	"phonecall-cost-processor-service/internal/domain/port/repository"
 )
 
 type CallService struct {
