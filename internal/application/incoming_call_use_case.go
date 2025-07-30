@@ -11,10 +11,10 @@ type IIncomingCallUseCase interface {
 }
 
 type IncomingCallUseCase struct {
-	callService service.ICallService
+	callService services.ICallService
 }
 
-func NewIncomingCallUseCase(callService service.ICallService) *IncomingCallUseCase {
+func NewIncomingCallUseCase(callService services.ICallService) *IncomingCallUseCase {
 	return &IncomingCallUseCase{callService}
 }
 

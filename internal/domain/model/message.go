@@ -13,7 +13,7 @@ type NewIncomingCall struct {
 	StartTimestamp   string   `json:"start_timestamp"`
 	Cost             *float64 `json:"cost,omitempty"`
 	Currency         string   `json:"currency,omitempty"`
-	CostFetchFailed  bool     `json:"cost_fetch_failed"`
+	
 }
 
 type RefundCall struct {

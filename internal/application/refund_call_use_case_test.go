@@ -13,6 +13,15 @@ type MockCallRepository struct {
 	ShouldErr  bool
 }
 
+// GetCallStatus implements repository.CallRepository.
+func (m *MockCallRepository) GetCallStatus(callID string) (string, error) {
+	panic("unimplemented")
+}
+
+func (m *MockCallRepository) MarkCostAsFailed(callID string) error {
+	panic("unimplemented")
+}
+
 func (m *MockCallRepository) SaveIncomingCall(model.NewIncomingCall) error {
 	return nil
 }

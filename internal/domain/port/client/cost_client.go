@@ -5,5 +5,5 @@ import (
 )
 
 type CostClient interface {
-	GetCallCost(callID string) (model.CostResponse, error)
+	GetCallCost(callID string) (*model.CostResponse, error)
 }

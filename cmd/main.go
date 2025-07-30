@@ -3,13 +3,12 @@ package main
 import (
 	"log"
 	"phonecall-cost-processor-service/internal/application"
-
 	"phonecall-cost-processor-service/internal/domain/model/services"
 
-	"phonecall-cost-processor-service/internal/infrastructure/postgres"
 	"phonecall-cost-processor-service/internal/infrastructure/client"
 	"phonecall-cost-processor-service/internal/infrastructure/config"
 	"phonecall-cost-processor-service/internal/infrastructure/handler"
+	"phonecall-cost-processor-service/internal/infrastructure/postgres"
 	"phonecall-cost-processor-service/internal/infrastructure/rabbitmq"
 	"phonecall-cost-processor-service/mock"
 )
@@ -36,9 +35,8 @@ func main() {
 
 	// Dependencias
 	callRepo := postgres.NewPostgresCallRepository(db)
-	costClient := client.NewHTTPCostClient(cfg.CostAPIUrl)
-	callService := service.NewCallService(callRepo, costClient)
-
+	costClient := client.NewHttpCostClient(cfg.CostAPIUrl)
+	callService := services.NewCallService(callRepo, costClient)
 
 	// Casos de uso
 	incomingUseCase := application.NewIncomingCallUseCase(callService)
@@ -47,7 +45,6 @@ func main() {
 	// Handlers
 	incomingHandler := handler.NewIncomingCallHandler(incomingUseCase)
 	refundHandler := handler.NewRefundCallHandler(refundUseCase)
-
 
 	handlerMap := map[string]rabbitmq.Handler{
 		"new_incoming_call": incomingHandler,

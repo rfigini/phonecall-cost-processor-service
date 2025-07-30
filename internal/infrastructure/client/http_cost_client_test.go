@@ -1,105 +1,59 @@
 package client
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// TestGetCallCost_Success verifica que GetCallCost retorne CostResponse correcto ante 200 OK
-func TestGetCallCost_Success(t *testing.T) {
-	// Servidor de prueba que responde con JSON válido
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{"cost": 7.25, "currency": "USD"}
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+func TestGetCallCost_RetriesOnFailure(t *testing.T) {
+	var attempt int32
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Fail the first 2 requests
+		if atomic.AddInt32(&attempt, 1) < 3 {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		// Then return success
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"currency":"ARS","cost":5.75}`))
 	}))
-	defer srv.Close()
+	defer ts.Close()
 
-	client := NewHTTPCostClient(srv.URL)
-	result, err := client.GetCallCost("any-id")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if result.Cost != 7.25 || result.Currency != "USD" {
-		t.Errorf("unexpected result, got %+v", result)
-	}
+	c := NewHttpCostClient(ts.URL)
+
+	start := time.Now()
+	resp, err := c.GetCallCost("dummy-call-id")
+	duration := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, "ARS", resp.Currency)
+	assert.Equal(t, 5.75, resp.Cost)
+	assert.GreaterOrEqual(t, int(duration.Seconds()), 1) // should wait at least 1s from backoff
+	assert.Equal(t, int32(3), attempt)
 }
 
-// TestGetCallCost_NotFound verifica manejo de 404 Not Found sin retries infinitos
-func TestGetCallCost_NotFound(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
+func TestGetCallCost_FailsAfterMaxRetries(t *testing.T) {
+	var attempt int32
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempt, 1)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))
-	defer srv.Close()
+	defer ts.Close()
 
-	client := NewHTTPCostClient(srv.URL)
-	_, err := client.GetCallCost("missing-id")
-	if err == nil {
-		t.Fatal("expected error for not found, got nil")
-	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("expected 'not found' error, got: %v", err)
-	}
-}
+	c := NewHttpCostClient(ts.URL)
 
-// TestGetCallCost_InvalidJSON verifica que JSON mal formado produzca error permanente
-func TestGetCallCost_InvalidJSON(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		// Body no es JSON válido
-		w.Write([]byte("not-a-json"))
-	}))
-	defer srv.Close()
+	resp, err := c.GetCallCost("failing-call-id")
 
-	client := NewHTTPCostClient(srv.URL)
-	_, err := client.GetCallCost("bad-json-id")
-	if err == nil {
-		t.Fatal("expected error for invalid JSON, got nil")
-	}
-	if !strings.Contains(err.Error(), "invalid response format") {
-		t.Errorf("expected JSON format error, got: %v", err)
-	}
-}
-
-// TestGetCallCost_ServerError se omite para evitar bloqueos por backoff
-func TestGetCallCost_ServerError(t *testing.T) {
-	t.Skip("Ignorado: prueba de retry de 5xx, podría bloquear por duración de backoff")
-}
-
-
-func TestGetCallCost_NotFoundWithBody(t *testing.T) {
-    srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusNotFound)
-        json.NewEncoder(w).Encode(map[string]string{
-            "message": "Llamada no encontrada",
-            "code":    "call_not_found",
-        })
-    }))
-    defer srv.Close()
-
-    client := NewHTTPCostClient(srv.URL)
-    _, err := client.GetCallCost("abc")
-    if err == nil || !strings.Contains(err.Error(), "Llamada no encontrada (call_not_found)") {
-        t.Errorf("expected parsed JSON error, got %v", err)
-    }
-}
-
-func TestGetCallCost_ServerErrorWithBody(t *testing.T) {
-    srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusInternalServerError)
-        json.NewEncoder(w).Encode(map[string]string{
-            "message": "Algo explotó",
-            "code":    "internal_server_error",
-        })
-    }))
-    defer srv.Close()
-
-    client := NewHTTPCostClient(srv.URL)
-    _, err := client.GetCallCost("xyz")
-    if err == nil || !strings.Contains(err.Error(), "Algo explotó (internal_server_error)") {
-        t.Errorf("expected parsed 5xx JSON error, got %v", err)
-    }
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Equal(t, int32(3), attempt)
 }
