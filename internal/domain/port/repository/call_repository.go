@@ -8,4 +8,8 @@ type CallRepository interface {
 	MarkCostAsFailed(callID string) error
 	ApplyRefund(model.RefundCall) error
 	GetCallStatus(callID string) (string, error)
+	FillMissingCallData(model.NewIncomingCall) error
+	MarkCallAsInvalid(callID string) error
 }
+
+

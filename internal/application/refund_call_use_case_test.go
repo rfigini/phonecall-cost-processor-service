@@ -13,6 +13,16 @@ type MockCallRepository struct {
 	ShouldErr  bool
 }
 
+// FillMissingCallData implements repository.CallRepository.
+func (m *MockCallRepository) FillMissingCallData(model.NewIncomingCall) error {
+	panic("unimplemented")
+}
+
+// MarkCallAsInvalid implements repository.CallRepository.
+func (m *MockCallRepository) MarkCallAsInvalid(callID string) error {
+	panic("unimplemented")
+}
+
 // GetCallStatus implements repository.CallRepository.
 func (m *MockCallRepository) GetCallStatus(callID string) (string, error) {
 	panic("unimplemented")

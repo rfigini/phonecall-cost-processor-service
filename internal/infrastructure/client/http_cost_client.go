@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"phonecall-cost-processor-service/internal/domain/model"
+	"phonecall-cost-processor-service/internal/domain/port/client"
+
 	"time"
 )
 
@@ -46,8 +48,7 @@ func (c *HttpCostClient) GetCallCost(callID string) (*model.CostResponse, error)
 				lastErr = fmt.Errorf("status code %d", resp.StatusCode)
 				log.Printf("⚠️ Fallo en cost API (intento %d): %s", i+1, lastErr)
 			} else {
-				// No tiene sentido reintentar errores 4xx
-				return nil, fmt.Errorf("no retry: status code %d", resp.StatusCode)
+				return nil, &client.CostAPIError{StatusCode: resp.StatusCode, Err: fmt.Errorf("client error")}
 			}
 		}
 
@@ -57,3 +58,4 @@ func (c *HttpCostClient) GetCallCost(callID string) (*model.CostResponse, error)
 
 	return nil, fmt.Errorf("cost API falló luego de %d intentos: %w", maxRetries, lastErr)
 }
+

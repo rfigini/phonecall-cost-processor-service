@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"phonecall-cost-processor-service/internal/domain/model"
+	"phonecall-cost-processor-service/internal/domain/port/client"
 )
 
 // Mocks
@@ -18,13 +19,38 @@ type mockRepo struct {
 	MarkFailedCalled bool
 	MarkFailedInput  string
 
-	UpdateErr       error
-	UpdateCalled    bool
-	UpdateInputID   string
-	UpdateInputCost float64
-	UpdateInputCur  string
+	UpdateErr           error
+	UpdateCalled        bool
+	UpdateInputID       string
+	UpdateInputCost     float64
+	UpdateInputCur      string
 	GetCallStatusOutput string
 	GetCallStatusErr    error
+	FillCalled          bool
+	FillInput           model.NewIncomingCall
+	FillFunc            func(call model.NewIncomingCall) error
+
+	InvalidCalled bool
+	InvalidInput  string
+	InvalidFunc   func(callID string) error
+}
+
+func (m *mockRepo) FillMissingCallData(call model.NewIncomingCall) error {
+	m.FillCalled = true
+	m.FillInput = call
+	if m.FillFunc != nil {
+		return m.FillFunc(call)
+	}
+	return nil
+}
+
+func (m *mockRepo) MarkCallAsInvalid(callID string) error {
+	m.InvalidCalled = true
+	m.InvalidInput = callID
+	if m.InvalidFunc != nil {
+		return m.InvalidFunc(callID)
+	}
+	return nil
 }
 
 func (m *mockRepo) GetCallStatus(callID string) (string, error) {
@@ -68,7 +94,6 @@ func (m *mockClient) GetCallCost(callID string) (*model.CostResponse, error) {
 	m.CalledInput = callID
 	return m.Resp, m.GetErr
 }
-
 
 // Tests
 func TestProcess_SaveError(t *testing.T) {
@@ -182,4 +207,76 @@ func TestProcess_RefundedCall_SkipsProcessing(t *testing.T) {
 	}
 }
 
+func TestProcess_DuplicatedCall_Discarded(t *testing.T) {
+	repo := &mockRepo{
+		GetCallStatusOutput: "PROCESSED",
+	}
+	client := &mockClient{}
+	svc := NewCallService(repo, client)
+	call := model.NewIncomingCall{CallID: "id_duplicate"}
 
+	err := svc.Process(call)
+	if err != nil {
+		t.Fatalf("expected no error for duplicated call, got %v", err)
+	}
+	if repo.SaveCalled {
+		t.Error("SaveIncomingCall should not be called for duplicated call")
+	}
+	if client.Called {
+		t.Error("GetCallCost should not be called for duplicated call")
+	}
+}
+
+func TestProcess_CostError_Client4xx_MarkInvalid(t *testing.T) {
+	repo := &mockRepo{}
+	apiErr := &client.CostAPIError{StatusCode: 404}
+	client := &mockClient{GetErr: apiErr}
+	svc := NewCallService(repo, client)
+	call := model.NewIncomingCall{CallID: "id_invalid"}
+
+	err := svc.Process(call)
+	if err != nil {
+		t.Fatalf("expected no error on mark invalid, got %v", err)
+	}
+}
+
+func TestProcess_RefundedCall_FillDataFails(t *testing.T) {
+	repo := &mockRepo{
+		GetCallStatusOutput: "REFUNDED",
+	}
+	repo.FillFunc = func(call model.NewIncomingCall) error {
+		return errors.New("fill failed")
+	}
+	client := &mockClient{}
+	svc := NewCallService(repo, client)
+
+	call := model.NewIncomingCall{CallID: "id_refund_fill_fail"}
+	err := svc.Process(call)
+
+	if err == nil || err.Error() != "fill failed" {
+		t.Fatalf("expected fill error, got %v", err)
+	}
+	if !repo.FillCalled {
+		t.Error("FillMissingCallData should be called for refunded call")
+	}
+}
+
+func TestProcess_CostError_Client4xx_MarkInvalidFails(t *testing.T) {
+	repo := &mockRepo{}
+	repo.InvalidFunc = func(callID string) error {
+		return errors.New("invalid mark failed")
+	}
+	apiErr := &client.CostAPIError{StatusCode: 400}
+	client := &mockClient{GetErr: apiErr}
+	svc := NewCallService(repo, client)
+
+	call := model.NewIncomingCall{CallID: "id_invalid_fail"}
+	err := svc.Process(call)
+
+	if err == nil || err.Error() != "invalid mark failed" {
+		t.Fatalf("expected invalid mark error, got %v", err)
+	}
+	if !repo.InvalidCalled || repo.InvalidInput != "id_invalid_fail" {
+		t.Error("MarkCallAsInvalid should be called with correct call ID")
+	}
+}

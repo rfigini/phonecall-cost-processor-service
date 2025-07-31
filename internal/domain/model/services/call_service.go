@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"log"
 
 	"phonecall-cost-processor-service/internal/domain/model"
@@ -16,6 +17,7 @@ type CallService struct {
 	repo       repository.CallRepository
 	costClient client.CostClient
 }
+
 func NewCallService(repo repository.CallRepository, costClient client.CostClient) ICallService {
 	return &CallService{repo: repo, costClient: costClient}
 }
@@ -26,7 +28,10 @@ func (s *CallService) Process(call model.NewIncomingCall) error {
 		return err
 	}
 	if status == "REFUNDED" {
-		log.Printf("⚠️ Esta llamada ya estaba refundeada call_id=%s: %v", call.CallID, err)
+		log.Printf("🔄 Completando datos de llamada previamente refund call_id=%s", call.CallID)
+		return s.repo.FillMissingCallData(call)
+	} else if status != "" {
+		log.Printf("ℹ️ Llamada duplicada descartada call_id=%s con estado=%s", call.CallID, status)
 		return nil
 	}
 
@@ -34,11 +39,19 @@ func (s *CallService) Process(call model.NewIncomingCall) error {
 		return err
 	}
 
-	costResp, err := s.costClient.GetCallCost(call.CallID)
+		costResp, err := s.costClient.GetCallCost(call.CallID)
 	if err != nil {
+		// Si es error de cliente (4xx), marcamos como inválido
+		var apiErr *client.CostAPIError
+		if errors.As(err, &apiErr) && apiErr.IsClientError() {
+			log.Printf("⚠️ Llamada inválida call_id=%s: %v", call.CallID, err)
+			return s.repo.MarkCallAsInvalid(call.CallID)
+		}
+
 		log.Printf("⚠️ Error obteniendo costo para call_id=%s: %v", call.CallID, err)
 		return s.repo.MarkCostAsFailed(call.CallID)
 	}
+
 
 	return s.repo.UpdateCallCost(call.CallID, costResp.Cost, costResp.Currency)
 }
