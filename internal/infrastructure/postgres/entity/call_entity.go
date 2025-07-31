@@ -6,7 +6,6 @@ import (
 	"phonecall-cost-processor-service/internal/domain/model"
 )
 
-// CallEntity representa la fila de la tabla 'calls' en Postgres con tags para sqlx o gorm.
 type CallEntity struct {
 	CallID         string    `db:"call_id"`
 	Caller         string    `db:"caller"`
@@ -21,9 +20,7 @@ type CallEntity struct {
 	ProcessedAt    time.Time `db:"processed_at"`
 }
 
-// FromNewIncomingCall mapea el modelo de dominio NewIncomingCall a CallEntity.
 func FromNewIncomingCall(m model.NewIncomingCall) (CallEntity, error) {
-	// Parsear RFC3339
 ts, err := time.Parse(time.RFC3339, m.StartTimestamp)
 	if err != nil {
 		return CallEntity{}, err
@@ -39,7 +36,6 @@ ts, err := time.Parse(time.RFC3339, m.StartTimestamp)
 	}, nil
 }
 
-// FromRefundCall mapea el modelo de dominio RefundCall a CallEntity.
 func FromRefundCall(m model.RefundCall) CallEntity {
 	reason := m.Reason
 	return CallEntity{

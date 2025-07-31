@@ -41,7 +41,6 @@ func (s *CallService) Process(call model.NewIncomingCall) error {
 
 		costResp, err := s.costClient.GetCallCost(call.CallID)
 	if err != nil {
-		// Si es error de cliente (4xx), marcamos como inválido
 		var apiErr *client.CostAPIError
 		if errors.As(err, &apiErr) && apiErr.IsClientError() {
 			log.Printf("⚠️ Llamada inválida call_id=%s: %v", call.CallID, err)

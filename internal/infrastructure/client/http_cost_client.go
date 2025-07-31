@@ -53,7 +53,7 @@ func (c *HttpCostClient) GetCallCost(callID string) (*model.CostResponse, error)
 		}
 
 		time.Sleep(backoff)
-		backoff *= 2 // exponential
+		backoff *= 2
 	}
 
 	return nil, fmt.Errorf("cost API falló luego de %d intentos: %w", maxRetries, lastErr)

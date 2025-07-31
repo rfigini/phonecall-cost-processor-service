@@ -173,7 +173,6 @@ func TestRefundPartiallyThenFill_ShouldBecomeRefunded(t *testing.T) {
 		t.Fatalf("expected REFUND_PARTIALLY, got %s", status)
 	}
 
-	// Luego llega la llamada -> debe pasar a REFUNDED
 	call := model.NewIncomingCall{
 		CallID:         callID,
 		Caller:         "Leo",

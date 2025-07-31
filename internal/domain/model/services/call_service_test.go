@@ -78,7 +78,6 @@ func (m *mockRepo) UpdateCallCost(callID string, cost float64, currency string) 
 }
 
 func (m *mockRepo) ApplyRefund(refund model.RefundCall) error {
-	// not used in CallService
 	return nil
 }
 
@@ -86,7 +85,7 @@ type mockClient struct {
 	GetErr      error
 	Called      bool
 	CalledInput string
-	Resp        *model.CostResponse // ahora puntero
+	Resp        *model.CostResponse 
 }
 
 func (m *mockClient) GetCallCost(callID string) (*model.CostResponse, error) {
@@ -95,7 +94,6 @@ func (m *mockClient) GetCallCost(callID string) (*model.CostResponse, error) {
 	return m.Resp, m.GetErr
 }
 
-// Tests
 func TestProcess_SaveError(t *testing.T) {
 	repo := &mockRepo{SaveErr: errors.New("save failed")}
 	client := &mockClient{}

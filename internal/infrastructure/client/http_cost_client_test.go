@@ -15,12 +15,10 @@ func TestGetCallCost_RetriesOnFailure(t *testing.T) {
 	var attempt int32
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Fail the first 2 requests
 		if atomic.AddInt32(&attempt, 1) < 3 {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		// Then return success
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"currency":"ARS","cost":5.75}`))
 	}))
@@ -36,7 +34,7 @@ func TestGetCallCost_RetriesOnFailure(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, "ARS", resp.Currency)
 	assert.Equal(t, 5.75, resp.Cost)
-	assert.GreaterOrEqual(t, int(duration.Seconds()), 1) // should wait at least 1s from backoff
+	assert.GreaterOrEqual(t, int(duration.Seconds()), 1) 
 	assert.Equal(t, int32(3), attempt)
 }
 

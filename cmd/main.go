@@ -55,6 +55,7 @@ func main() {
 	if err := rabbitmq.StartConsumingMessages(rabbitCh, cfg.RabbitQueue, handlerMap); err != nil {
 		log.Fatalf("❌ Error iniciando consumidor: %v", err)
 	}
-
+	
+	// Mantenemos el programa corriendo para escuchar mensajes
 	select {}
 }
