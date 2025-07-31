@@ -109,12 +109,6 @@ Para probar el sistema de forma completa:
 
 ## 💪 Tests
 
-Para correr todos los tests:
-
-```bash
-go test ./...
-```
-
 Tests de integración con PostgreSQL real:
 
 ```bash
@@ -122,6 +116,11 @@ docker-compose -f docker-compose-postgres-test.yml up -d
 go test ./internal/infrastructure/postgres
 ```
 
+Para correr todos los tests:
+
+```bash
+go test ./...
+```
 ---
 
 ## 🗃️ Estado de llamadas en la base de datos
