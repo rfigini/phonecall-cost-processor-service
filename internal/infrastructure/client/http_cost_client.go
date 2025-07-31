@@ -42,9 +42,13 @@ func (c *HttpCostClient) GetCallCost(callID string) (*model.CostResponse, error)
 				}
 				return &costResp, nil
 			}
-
-			lastErr = fmt.Errorf("status code %d", resp.StatusCode)
-			log.Printf("⚠️ Fallo en cost API (intento %d): %s", i+1, lastErr)
+			if resp.StatusCode >= 500 {
+				lastErr = fmt.Errorf("status code %d", resp.StatusCode)
+				log.Printf("⚠️ Fallo en cost API (intento %d): %s", i+1, lastErr)
+			} else {
+				// No tiene sentido reintentar errores 4xx
+				return nil, fmt.Errorf("no retry: status code %d", resp.StatusCode)
+			}
 		}
 
 		time.Sleep(backoff)

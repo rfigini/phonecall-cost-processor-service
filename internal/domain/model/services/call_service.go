@@ -40,6 +40,5 @@ func (s *CallService) Process(call model.NewIncomingCall) error {
 		return s.repo.MarkCostAsFailed(call.CallID)
 	}
 
-	// 3. Actualizar costo exitoso
 	return s.repo.UpdateCallCost(call.CallID, costResp.Cost, costResp.Currency)
 }

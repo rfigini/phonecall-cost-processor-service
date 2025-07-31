@@ -57,3 +57,22 @@ func TestGetCallCost_FailsAfterMaxRetries(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Equal(t, int32(3), attempt)
 }
+
+func TestGetCallCost_DoesNotRetryOnClientError(t *testing.T) {
+	var attempt int32
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempt, 1)
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer ts.Close()
+
+	c := NewHttpCostClient(ts.URL)
+
+	resp, err := c.GetCallCost("not-found-call-id")
+
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Equal(t, int32(1), attempt, "Should not retry on 4xx errors")
+}
+
