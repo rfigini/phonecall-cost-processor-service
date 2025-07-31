@@ -23,7 +23,7 @@ Este servicio consume mensajes desde una cola con eventos de llamadas telefónic
 ### ✔️ Tolerancia a duplicados y desorden
 
 - Se garantiza **idempotencia** mediante el uso de `call_id` como clave primaria.
-- La lógica actual **ignora llamadas ya procesadas** (con estado `OK`, `ERROR`, `REFUNDED`, `INVALID`), evitando reprocesamientos innecesarios.
+- La lógica actual **ignora llamadas ya procesadas** (con estado `OK`, `ERROR`, `REFUNDED`, `REFUND_PARTIALLY`, `INVALID`), evitando reprocesamientos innecesarios.
 
 ### ✔️ Resiliencia ante fallos en la API
 
