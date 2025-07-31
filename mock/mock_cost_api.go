@@ -28,7 +28,13 @@ func StartMockCostAPI() {
 				})
 				return
 			}
-
+		case "123e4567-e89b-12d3-a456-426614174997": // Falla 5xx persistente
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Falla permanente del servicio externo",
+				"code":    "permanent_internal_error",
+			})
+			return
 		case "123e4567-e89b-12d3-a456-426614174998": // 404 permanente
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(map[string]string{
@@ -64,7 +70,6 @@ func StartMockCostAPI() {
 		http.ListenAndServe(":8080", nil)
 	}()
 }
-
 
 func extractCallID(path string) string {
 	parts := strings.Split(path, "/")

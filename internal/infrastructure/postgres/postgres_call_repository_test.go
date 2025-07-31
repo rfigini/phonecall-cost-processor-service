@@ -16,7 +16,7 @@ var db *sql.DB
 
 func TestMain(m *testing.M) {
 	var err error
-	dsn := "postgres://testuser:testpass@localhost:5433/testdb?sslmode=disable"
+	dsn := "postgres://testuser:testpass@localhost:5444/testdb?sslmode=disable"
 
 	for i := 0; i < 10; i++ {
 		db, err = sql.Open("postgres", dsn)
@@ -107,8 +107,8 @@ func TestApplyRefund_NewCall(t *testing.T) {
 	refund := model.RefundCall{CallID: callID, Reason: "Cobro duplicado"}
 	_ = repo.ApplyRefund(refund)
 	status, err := repo.GetCallStatus(callID)
-	if err != nil || status != "REFUNDED" {
-		t.Fatalf("expected status REFUNDED, got %s (err: %v)", status, err)
+	if err != nil || status != "REFUND_PARTIALLY" {
+		t.Fatalf("expected status REFUND_PARTIALLY, got %s (err: %v)", status, err)
 	}
 }
 
@@ -147,17 +147,45 @@ func TestFillMissingCallData(t *testing.T) {
 	}
 }
 
-
 func TestGetCallStatus_Empty(t *testing.T) {
-    repo := setupTest(t)
-    callID := uuid.New().String()
+	repo := setupTest(t)
+	callID := uuid.New().String()
 
-    status, err := repo.GetCallStatus(callID)
-    if err != nil {
-        t.Fatalf("GetCallStatus failed on empty: %v", err)
-    }
-    if status != "" {
-        t.Errorf("Expected empty status, got %s", status)
-    }
+	status, err := repo.GetCallStatus(callID)
+	if err != nil {
+		t.Fatalf("GetCallStatus failed on empty: %v", err)
+	}
+	if status != "" {
+		t.Errorf("Expected empty status, got %s", status)
+	}
 }
 
+func TestRefundPartiallyThenFill_ShouldBecomeRefunded(t *testing.T) {
+	repo := setupTest(t)
+	callID := uuid.New().String()
+
+	refund := model.RefundCall{CallID: callID, Reason: "Cobro anticipado"}
+	if err := repo.ApplyRefund(refund); err != nil {
+		t.Fatalf("error aplicando refund: %v", err)
+	}
+	status, _ := repo.GetCallStatus(callID)
+	if status != "REFUND_PARTIALLY" {
+		t.Fatalf("expected REFUND_PARTIALLY, got %s", status)
+	}
+
+	// Luego llega la llamada -> debe pasar a REFUNDED
+	call := model.NewIncomingCall{
+		CallID:         callID,
+		Caller:         "Leo",
+		Receiver:       "Max",
+		DurationInSec:  50,
+		StartTimestamp: time.Now().Format(time.RFC3339),
+	}
+	if err := repo.FillMissingCallData(call); err != nil {
+		t.Fatalf("error llenando datos faltantes: %v", err)
+	}
+	status, _ = repo.GetCallStatus(callID)
+	if status != "REFUNDED" {
+		t.Fatalf("expected status REFUNDED after filling, got %s", status)
+	}
+}

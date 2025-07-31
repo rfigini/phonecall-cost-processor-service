@@ -27,7 +27,7 @@ func (s *CallService) Process(call model.NewIncomingCall) error {
 	if err != nil {
 		return err
 	}
-	if status == "REFUNDED" {
+	if status == "REFUND_PARTIALLY" {
 		log.Printf("🔄 Completando datos de llamada previamente refund call_id=%s", call.CallID)
 		return s.repo.FillMissingCallData(call)
 	} else if status != "" {

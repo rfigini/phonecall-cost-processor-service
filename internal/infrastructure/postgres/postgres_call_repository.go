@@ -91,7 +91,7 @@ func (r *PostgresCallRepository) ApplyRefund(refund model.RefundCall) error {
 
 	const query = `
 	INSERT INTO calls (call_id, refunded, refund_reason, cost, status, processed_at)
-	VALUES ($1, true, $2, 0, 'REFUNDED', NOW())
+	VALUES ($1, true, $2, 0, 'REFUND_PARTIALLY', NOW())
 	ON CONFLICT (call_id) DO UPDATE
 	SET refunded = true,
 		refund_reason = EXCLUDED.refund_reason,
@@ -123,8 +123,11 @@ func (r *PostgresCallRepository) FillMissingCallData(call model.NewIncomingCall)
 	SET caller = $1,
 		receiver = $2,
 		duration_in_seconds = $3,
-		start_timestamp = $4
-	WHERE call_id = $5 AND status = 'REFUNDED';`
+		start_timestamp = $4,
+		status = 'REFUNDED'
+	WHERE call_id = $5 AND status = 'REFUND_PARTIALLY';`
+
 	_, err := r.db.Exec(query, call.Caller, call.Receiver, call.DurationInSec, call.StartTimestamp, call.CallID)
 	return err
 }
+

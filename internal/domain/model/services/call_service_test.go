@@ -188,7 +188,7 @@ func TestProcess_UpdateError(t *testing.T) {
 
 func TestProcess_RefundedCall_SkipsProcessing(t *testing.T) {
 	repo := &mockRepo{
-		GetCallStatusOutput: "REFUNDED",
+		GetCallStatusOutput: "REFUND_PARTIALLY",
 	}
 	client := &mockClient{}
 	svc := NewCallService(repo, client)
@@ -240,9 +240,9 @@ func TestProcess_CostError_Client4xx_MarkInvalid(t *testing.T) {
 	}
 }
 
-func TestProcess_RefundedCall_FillDataFails(t *testing.T) {
+func TestProcess_RefundPartially_FillDataFails(t *testing.T) {
 	repo := &mockRepo{
-		GetCallStatusOutput: "REFUNDED",
+		GetCallStatusOutput: "REFUND_PARTIALLY",
 	}
 	repo.FillFunc = func(call model.NewIncomingCall) error {
 		return errors.New("fill failed")
@@ -278,5 +278,32 @@ func TestProcess_CostError_Client4xx_MarkInvalidFails(t *testing.T) {
 	}
 	if !repo.InvalidCalled || repo.InvalidInput != "id_invalid_fail" {
 		t.Error("MarkCallAsInvalid should be called with correct call ID")
+	}
+}
+
+
+func TestProcess_RefundPartially_CompletesData(t *testing.T) {
+	called := false
+	repo := &mockRepo{
+		GetCallStatusOutput: "REFUND_PARTIALLY",
+		FillFunc: func(call model.NewIncomingCall) error {
+			called = true
+			return nil
+		},
+	}
+	client := &mockClient{}
+	svc := NewCallService(repo, client)
+
+	call := model.NewIncomingCall{CallID: "id_partial_refund"}
+	err := svc.Process(call)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !called {
+		t.Error("FillMissingCallData should be called for REFUND_PARTIALLY call")
+	}
+	if client.Called {
+		t.Error("GetCallCost should not be called for REFUND_PARTIALLY call")
 	}
 }
