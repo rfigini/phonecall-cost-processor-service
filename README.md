@@ -1,95 +1,82 @@
 # 📞 Phonecall Cost Processor Service
 
-**Autor**: Ricardo Figini
-
-
----
-
-## 🧠 ¿Qué hace este servicio?
-
-Este servicio consume mensajes desde una cola con eventos de llamadas telefónicas, los procesa, consulta una API externa para calcular el costo y persiste los resultados en una base de datos. Está preparado para:
-
-- Manejar mensajes duplicados y sin orden.
-- Soportar fallas intermitentes o caídas prolongadas de la API externa.
-- Facilitar reintentos y diagnósticos.
-- Extender el consumo de nuevos mensajes fácilmente.
-- A futuro reprocesar llamadas que hayan quedado sin costo (no implementado).
-- A futuro generar reportes mensuales de facturación (no implementado).
+**Author**: Ricardo Figini
 
 ---
 
-## 🛠️ Decisiones Técnicas
+## 🧠 What does this service do?
 
-### ✔️ Tolerancia a duplicados y desorden
+This service consumes messages from a queue with phone call events, processes them, queries an external API to calculate the cost, and stores the results in a database.  
+It is designed to:
 
-- Se garantiza **idempotencia** mediante el uso de `call_id` como clave primaria.
-- La lógica actual **ignora llamadas ya procesadas** (con estado `OK`, `ERROR`, `REFUNDED`, `REFUND_PARTIALLY`, `INVALID`), evitando reprocesamientos innecesarios.
-
-### ✔️ Resiliencia ante fallos en la API
-
-- Se utiliza un cliente HTTP con **reintentos automáticos y backoff exponencial** ante errores 5xx o timeouts.
-- Si la API falla luego de reintentos, se marca la llamada como `ERROR`, permitiendo **reprocesos posteriores**.
-
-### ✔️ Diagnóstico y trazabilidad
-
-- Se registra el estado final de cada llamada (`OK`, `ERROR`, `REFUNDED`, `INVALID`, `REFUND_PARTIALLY`) junto con timestamps y razón de fallo si aplica.
-- Esto permite **detectar errores de negocio** (por ejemplo, llamadas no encontradas) y diferenciarlos de errores técnicos.
-
-### ✔️ Extensibilidad
-
-- Agregar un nuevo tipo de mensaje (ej: `call_quality_issue`) requiere:
-  1. Agregar una entrada al dispatcher de mensajes.
-  2. Crear un nuevo `UseCase` con su handler.
-  3. Definir el modelo y testear el flujo.
-
-Esto respeta el principio **Open/Closed** y no requiere tocar los casos ya existentes.
+- Handle duplicate and out-of-order messages.  
+- Tolerate intermittent failures or prolonged outages of the external API.  
+- Support retries and easy diagnostics.  
+- Easily extend to consume new types of messages.  
+- *(Future)* Reprocess calls that were left without cost (not implemented).  
+- *(Future)* Generate monthly billing reports (not implemented).  
 
 ---
 
-## ▶️ Cómo ejecutarlo
+## 🛠️ Technical Decisions
 
-### Requisitos
+### ✔️ Duplicate and out-of-order tolerance
+- **Idempotency** is guaranteed by using `call_id` as the primary key.  
+- Already processed calls (`OK`, `ERROR`, `REFUNDED`, `REFUND_PARTIALLY`, `INVALID`) are ignored to avoid unnecessary reprocessing.  
 
-- Go 1.20+
-- Docker + Docker Compose
+### ✔️ API failure resilience
+- The HTTP client uses **automatic retries with exponential backoff** for 5xx errors or timeouts.  
+- If the API still fails after retries, the call is marked as `ERROR` so it can be reprocessed later.  
 
-### 1. Levantar dependencias
+### ✔️ Diagnostics and traceability
+- The final state of each call is recorded (`OK`, `ERROR`, `REFUNDED`, `INVALID`, `REFUND_PARTIALLY`), along with timestamps and failure reason (if applicable).  
+- This allows identifying **business errors** (e.g., call not found) separately from technical errors.  
 
+### ✔️ Extensibility
+- Adding a new message type (e.g., `call_quality_issue`) only requires:
+  1. Adding an entry to the message dispatcher.  
+  2. Creating a new `UseCase` with its handler.  
+  3. Defining the model and testing the flow.  
+
+This follows the **Open/Closed principle** without modifying existing cases.
+
+---
+
+## ▶️ How to run it
+
+### Requirements
+- Go 1.20+  
+- Docker + Docker Compose  
+
+### 1. Start dependencies
 ```bash
 docker-compose up -d
 ```
+This starts:
+- PostgreSQL (localhost:5433)  
+- RabbitMQ (localhost:5672 + UI at [http://localhost:15672](http://localhost:15672))  
+- Mock cost API on localhost:8081  
 
-Esto inicia:
-
-- PostgreSQL (localhost:5433)
-- RabbitMQ (localhost:5672 + UI en [http://localhost:15672](http://localhost:15672))
-- Mock API de costos en localhost:8081
-
-### 2. Ejecutar el servicio
-
+### 2. Run the service
 ```bash
 go run cmd/main.go
 ```
-
-El servicio:
-
-- Escucha mensajes desde `calls_queue`.
-- Procesa mensajes tipo `new_incoming_call` y `refund_call`.
-- Guarda resultados en la base de datos.
+The service:
+- Listens to messages from `calls_queue`.  
+- Processes `new_incoming_call` and `refund_call` message types.  
+- Stores results in the database.  
 
 ---
 
-## 🔮 Test E2E con RabbitMQ
+## 🔮 End-to-end test with RabbitMQ
 
-Para probar el sistema de forma completa:
-
-1. Levantar el entorno como indica el README.
-2. Ingresar a la UI de RabbitMQ: [http://localhost:15672](http://localhost:15672)
-   - Usuario: `guest`, Contraseña: `guest`
-3. Ir a la cola `calls_queue` y usar la sección **Publish message**.
-   - En routing key: `calls_queue`
-   - En payload, usar el JSON estructurado del tipo:
-
+To test the system end-to-end:  
+1. Start the environment as described in the README.  
+2. Open the RabbitMQ UI: [http://localhost:15672](http://localhost:15672)  
+   - User: `guest`, Password: `guest`  
+3. Go to the `calls_queue` queue and use **Publish message**:  
+   - Routing key: `calls_queue`  
+   - Payload example:  
 ```json
 {
   "type": "new_incoming_call",
@@ -103,46 +90,44 @@ Para probar el sistema de forma completa:
 }
 ```
 
-> Para ver todos los casos de prueba disponibles, consultar el archivo `E2E_rabbit_mq_test_casess.md` incluido en el proyecto.
+> For all available test cases, see the `E2E_rabbit_mq_test_casess.md` file included in the project.
 
 ---
 
 ## 💪 Tests
 
-Tests de integración con PostgreSQL real:
-
+Integration tests with a real PostgreSQL instance:
 ```bash
 docker-compose -f docker-compose-postgres-test.yml up -d
 go test ./internal/infrastructure/postgres
 ```
 
-Para correr todos los tests:
-
+Run all tests:
 ```bash
 go test ./...
 ```
----
-
-## 🗃️ Estado de llamadas en la base de datos
-
-Cada llamada persiste su estado:
-
-- `OK`: procesada exitosamente.
-- `ERROR`: falló la consulta de costos (reintentos agotados o error técnico).
-- `REFUNDED`: fue reembolsada por reclamo.
-- `REFUND_PARTIALLY`: se recibió un reembolso antes que la llamada.
-- `INVALID`: error de negocio (ej: llamada no encontrada en la API).
-
-Esto permite en el futuro:
-
-- Implementar un **reprocesador automático de llamadas con estado **``.
-- Excluir las `INVALID` que fallaron por causas no recuperables.
-
-La fecha (`start_timestamp`) permite generar **reportes mensuales de facturación**.
 
 ---
 
-## 🌐 Variables de entorno utilizadas
+## 🗃️ Call status in the database
+
+Each call stores its status:
+
+- `OK`: processed successfully.  
+- `ERROR`: cost retrieval failed (retries exhausted or technical error).  
+- `REFUNDED`: refunded due to a claim.  
+- `REFUND_PARTIALLY`: refund received before the call was processed.  
+- `INVALID`: business error (e.g., call not found in the API).  
+
+This enables, in the future:
+- Implementing an **automatic reprocessor** for calls in `ERROR`.  
+- Excluding `INVALID` calls that failed for unrecoverable reasons.  
+
+The `start_timestamp` also allows generating **monthly billing reports**.
+
+---
+
+## 🌐 Environment variables
 
 ```env
 RABBITMQ_URL=amqp://guest:guest@localhost:5672
@@ -153,29 +138,28 @@ COST_API_URL=http://localhost:8081
 
 ---
 
-## 📁 Estructura del código
+## 📁 Code structure
 
 ```
 cmd/                    # Entry point
 internal/
-  application/          # Casos de uso (lógica de negocio)
-  domain/               # Modelos del negocio
+  application/          # Use cases (business logic)
+  domain/               # Business models
   infrastructure/
-    handler/            # RabbitMQ handlers (punto de entrada de la app)
-    client/             # API externa de costos
-    postgres/           # Repositorio de llamadas
-    rabbitmq/           # Consumo de mensajes
-mock/                   # Mock de API de costos
+    handler/            # RabbitMQ handlers (application entry point)
+    client/             # External cost API
+    postgres/           # Call repository
+    rabbitmq/           # Message consumption
+mock/                   # Mock cost API
 ```
 
-La arquitectura elegida es **hexagonal** para desacoplar el dominio de la infraestructura. Los handlers funcionan como punto de entrada a la aplicación y se relacionan 1 a 1 con sus respectivos casos de uso.
+The architecture follows the **Hexagonal Architecture** pattern to decouple domain from infrastructure.  
+Handlers act as the application’s entry point and map 1:1 to their respective use cases.  
 
-> ⚠️ El repositorio actual concentra múltiples responsabilidades. Si bien se reconoce este **code smell (SRP)**, se decidió mantenerlo por pragmatismo siendo un ejercicio técnico. Es un área marcada para refactor futuro.
+> ⚠️ The repository currently holds multiple responsibilities. While this is recognized as an SRP violation, it was kept for pragmatism in the context of a technical exercise. This is marked for future refactoring.
 
 ---
 
-## 📝 Consideraciones finales
-
-- Se priorizó un diseño simple, legible y con foco en resiliencia sin sobreingeniería.
-- Está diseñado para agregar nuevas funcionalidades sin modificar la lógica existente.
-
+## 📝 Final considerations
+- The design is simple, readable, and resilience-focused without overengineering.  
+- It’s built to easily add new features without modifying existing logic.  
