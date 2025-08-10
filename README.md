@@ -1,6 +1,6 @@
 # 📞 Phonecall Cost Processor Service
 
-**Autor**: Ricardo Figini\
+**Autor**: Ricardo Figini
 
 
 ---
