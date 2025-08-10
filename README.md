@@ -1,7 +1,7 @@
 # 📞 Phonecall Cost Processor Service
 
 **Autor**: Ricardo Figini\
-**Ejercicio Técnico – Backend Brubank**
+
 
 ---
 
